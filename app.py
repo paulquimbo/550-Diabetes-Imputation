@@ -20,10 +20,10 @@ st.markdown("This project builds a predictive machine learning model in Python t
 @st.cache_resource
 def load_model():
     try:
-        model = joblib.load("lessthan30_RandomForest_Final.Smoteenn.pkl")
+        model = joblib.load("lessthan30_RandomForest_Tuned.Smoteenn.Imputations.pkl")
         return model
     except FileNotFoundError:
-        st.error("Model file not found. Please ensure 'lessthan30_RandomForest_Final.Smoteenn.pkl' is in the workspace.")
+        st.error("Model file not found. Please ensure 'lessthan30_RandomForest_Tuned.Smoteenn.Imputations.pkl' is in the workspace.")
         return None
 
 # ============================================================
