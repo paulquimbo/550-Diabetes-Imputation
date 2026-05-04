@@ -76,28 +76,11 @@ def icd_to_chapter(code):
     else:
         return "Unknown"
 
-def diag_chapter_to_binary(chapter):
-    """Convert diagnosis chapter to binary risk indicator."""
-    risk_chapters = {
-        "Endocrine/Metabolic": 1,
-        "Circulatory System": 1,
-        "Respiratory System": 1,
-        "Neoplasms": 1,
-        "Infectious and Parasitic Diseases": 1,
-        "Injury/Poisoning": 1,
-        "Genitourinary System": 1,
-        "Nervous System": 1,
-        "Blood Diseases": 1,
-        "Mental Disorders": 1,
-    }
-    return risk_chapters.get(chapter, 0)
-
 def preprocess_input(input_data):
     """Apply all preprocessing steps from the notebook."""
     df = pd.DataFrame([input_data])
     
     # ---- GENDER ENCODING (matches training data) ----
-    # Training used actual gender values from the dataset
     gender_mapping = {
         "M": "Male",
         "F": "Female"
@@ -124,26 +107,100 @@ def preprocess_input(input_data):
     }
     df['age'] = df['age'].map(age_map)
     
-    # ---- ADMISSION TYPE BINARY ----
-    admission_type_binary_map = {
-        1: 1, 2: 1, 7: 1,  # Emergency/Urgent/Trauma
-        3: 0, 4: 0, 5: 0, 6: 0, 8: 0  # Elective/Newborn/NotAvailable/NULL/NotMapped
+    # ---- ADMISSION TYPE ONE-HOT ENCODING ----
+    admission_type_map = {
+        1: "emergency",
+        2: "urgent",
+        3: "elective",
+        4: "newborn",
+        5: "notavailable",
+        6: "null",
+        7: "trauma",
+        8: "notmapped"
     }
-    df["admission_emergency"] = df["admission_type_id"].map(admission_type_binary_map).fillna(0).astype(int)
+    df["admission_type"] = df["admission_type_id"].map(admission_type_map)
     
-    # ---- DISCHARGE DISPOSITION RISK ----
-    discharge_disposition_binary_map = {
-        2: 0, 11: 0, 12: 0, 13: 0, 14: 0, 15: 0, 19: 0, 20: 0, 21: 0,  # Lower-risk
-        1: 1, 3: 1, 4: 1, 5: 1, 6: 1, 7: 1, 8: 1, 9: 1, 10: 1, 16: 1,
-        17: 1, 18: 1, 22: 1, 23: 1, 24: 1, 25: 1, 27: 1, 28: 1, 29: 1, 30: 1  # Higher-risk
+    # One-hot encode admission types
+    admission_dummies = pd.get_dummies(
+        df["admission_type"],
+        prefix="admission"
+    ).astype(int)
+    df = pd.concat([df, admission_dummies], axis=1)
+    
+    # ---- DISCHARGE DISPOSITION ONE-HOT ENCODING ----
+    discharge_disposition_map = {
+        1: "home",
+        2: "short_term_hospital",
+        3: "snf",
+        4: "icf",
+        5: "other_inpatient",
+        6: "home_health",
+        7: "left_ama",
+        8: "home_iv_care",
+        9: "admitted_this_hospital",
+        10: "neonate_another_hospital",
+        11: "expired",
+        12: "still_patient",
+        13: "hospice_home",
+        14: "hospice_facility",
+        15: "swing_bed",
+        16: "outpatient_other_institution",
+        17: "outpatient_this_institution",
+        18: "null",
+        19: "expired_home_medicaid",
+        20: "expired_facility_medicaid",
+        21: "expired_unknown_medicaid",
+        22: "rehab_facility",
+        23: "long_term_care_hospital",
+        24: "medicaid_nursing_facility",
+        25: "not_mapped",
+        27: "federal_healthcare_facility",
+        28: "psychiatric_hospital",
+        29: "critical_access_hospital",
+        30: "other_healthcare_institution"
     }
-    df["DischargeRisk"] = df["discharge_disposition_id"].map(discharge_disposition_binary_map).fillna(0).astype(int)
+    df["discharge_type"] = df["discharge_disposition_id"].map(discharge_disposition_map)
     
-    # ---- DIAGNOSIS CHAPTERS ----
+    # One-hot encode discharge types
+    discharge_dummies = pd.get_dummies(
+        df["discharge_type"],
+        prefix="discharge"
+    ).astype(int)
+    df = pd.concat([df, discharge_dummies], axis=1)
+    
+    # ---- DIAGNOSIS CHAPTERS WITH ONE-HOT ENCODING ----
+    diag_chapter_map = {
+        "Endocrine/Metabolic": "endocrine_metabolic",
+        "Circulatory System": "circulatory",
+        "Respiratory System": "respiratory",
+        "Neoplasms": "neoplasms",
+        "Infectious and Parasitic Diseases": "infectious_parasitic",
+        "Injury/Poisoning": "injury_poisoning",
+        "Genitourinary System": "genitourinary",
+        "Nervous System": "nervous_system",
+        "Blood Diseases": "blood_diseases",
+        "Mental Disorders": "mental_disorders",
+        "Symptoms/Ill-defined": "symptoms_ill_defined",
+        "Skin/Subcutaneous": "skin_subcutaneous",
+        "Musculoskeletal": "musculoskeletal",
+        "Digestive System": "digestive",
+        "Pregnancy/Childbirth": "pregnancy_childbirth",
+        "Congenital Anomalies": "congenital_anomalies",
+        "Perinatal Conditions": "perinatal_conditions",
+        "Unknown": "unknown"
+    }
+    
     for col in ["diag_1", "diag_2", "diag_3"]:
         chapter_col = f"{col}_chapter"
         df[chapter_col] = df[col].apply(icd_to_chapter)
-        df[chapter_col] = df[chapter_col].apply(diag_chapter_to_binary)
+        df[chapter_col] = df[chapter_col].map(diag_chapter_map)
+    
+    # One-hot encode diagnosis chapters
+    diag_dummies = pd.get_dummies(
+        df[["diag_1_chapter", "diag_2_chapter", "diag_3_chapter"]],
+        prefix=["diag1", "diag2", "diag3"]
+    ).astype(int)
+    df = pd.concat([df, diag_dummies], axis=1)
     
     # ---- DIABETIC MEDICATION ----
     df['diabetesMed'] = (df['diabetesMed'].str.lower() == "yes").astype(int)
@@ -173,15 +230,48 @@ def get_model_features():
     if hasattr(model, 'feature_names_in_'):
         return list(model.feature_names_in_)
     
-    # Fallback to hardcoded list if model doesn't have feature_names_in_
+    # Complete list of features from the training data
     return [
-        'time_in_hospital', 'num_lab_procedures', 'num_procedures',
+        'age', 'time_in_hospital', 'num_lab_procedures', 'num_procedures',
         'num_medications', 'number_emergency', 'number_outpatient',
-        'number_inpatient', 'number_diagnoses', 'age',
-        'admission_emergency', 'DischargeRisk',
-        'diag_1_chapter', 'diag_2_chapter', 'diag_3_chapter',
-        'diabetesMed', 'Gender_Female', 'Gender_Male', 'Gender_Unknown/Invalid',
-        'Race_Caucasian', 'Race_AfricanAmerican', 'Race_Hispanic', 'Race_Asian', 'Race_Other', 'Race_Unknown'
+        'number_inpatient', 'number_diagnoses', 'weight_num', 'max_glu_serum_num',
+        'A1Cresult_num', 'diabetesMed',
+        'Gender_Female', 'Gender_Male', 'Gender_Unknown/Invalid',
+        'admission_elective', 'admission_emergency', 'admission_newborn',
+        'admission_notavailable', 'admission_notmapped', 'admission_null',
+        'admission_trauma', 'admission_urgent',
+        'discharge_admitted_this_hospital', 'discharge_expired',
+        'discharge_expired_facility_medicaid', 'discharge_expired_home_medicaid',
+        'discharge_federal_healthcare_facility', 'discharge_home',
+        'discharge_home_health', 'discharge_home_iv_care',
+        'discharge_hospice_facility', 'discharge_hospice_home', 'discharge_icf',
+        'discharge_left_ama', 'discharge_long_term_care_hospital',
+        'discharge_medicaid_nursing_facility', 'discharge_neonate_another_hospital',
+        'discharge_not_mapped', 'discharge_null', 'discharge_other_inpatient',
+        'discharge_outpatient_other_institution', 'discharge_outpatient_this_institution',
+        'discharge_psychiatric_hospital', 'discharge_rehab_facility',
+        'discharge_short_term_hospital', 'discharge_snf', 'discharge_still_patient',
+        'discharge_swing_bed',
+        'diag1_blood_diseases', 'diag1_circulatory', 'diag1_congenital_anomalies',
+        'diag1_digestive', 'diag1_endocrine_metabolic', 'diag1_genitourinary',
+        'diag1_infectious_parasitic', 'diag1_injury_poisoning', 'diag1_mental_disorders',
+        'diag1_musculoskeletal', 'diag1_neoplasms', 'diag1_nervous_system',
+        'diag1_pregnancy_childbirth', 'diag1_respiratory', 'diag1_skin_subcutaneous',
+        'diag1_symptoms_ill_defined', 'diag1_unknown',
+        'diag2_blood_diseases', 'diag2_circulatory', 'diag2_congenital_anomalies',
+        'diag2_digestive', 'diag2_endocrine_metabolic', 'diag2_genitourinary',
+        'diag2_infectious_parasitic', 'diag2_injury_poisoning', 'diag2_mental_disorders',
+        'diag2_musculoskeletal', 'diag2_neoplasms', 'diag2_nervous_system',
+        'diag2_pregnancy_childbirth', 'diag2_respiratory', 'diag2_skin_subcutaneous',
+        'diag2_symptoms_ill_defined', 'diag2_unknown',
+        'diag3_blood_diseases', 'diag3_circulatory', 'diag3_congenital_anomalies',
+        'diag3_digestive', 'diag3_endocrine_metabolic', 'diag3_genitourinary',
+        'diag3_infectious_parasitic', 'diag3_injury_poisoning', 'diag3_mental_disorders',
+        'diag3_musculoskeletal', 'diag3_neoplasms', 'diag3_nervous_system',
+        'diag3_pregnancy_childbirth', 'diag3_respiratory', 'diag3_skin_subcutaneous',
+        'diag3_symptoms_ill_defined', 'diag3_unknown',
+        'Race_Caucasian', 'Race_AfricanAmerican', 'Race_Unknown', 'Race_Other',
+        'Race_Asian', 'Race_Hispanic'
     ]
 
 # ============================================================
@@ -235,6 +325,19 @@ if model is not None:
     
     with col4:
         num_medications = st.slider("Medications", 0, 81)
+    
+    # Laboratory Values
+    st.subheader("🧪 Laboratory Values")
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        weight_num = st.slider("Weight (lbs)", 25, 250)
+    
+    with col2:
+        max_glu_serum_num = st.slider("Max Glucose Serum (mg/dL)", 70, 350)
+    
+    with col3:
+        A1Cresult_num = st.slider("A1C Result (%)", 4.0, 10.0, 0.1)
     
     # Visit History
     st.subheader("📊 Visit History")
@@ -358,6 +461,9 @@ if model is not None:
         'diag_2': diag_2,
         'diag_3': diag_3,
         'diabetesMed': diabetesMed,
+        'weight_num': weight_num,
+        'max_glu_serum_num': max_glu_serum_num,
+        'A1Cresult_num': A1Cresult_num,
     }
     
     # ============================================================
@@ -418,7 +524,7 @@ if model is not None:
             st.markdown("---")
             st.subheader("👤 Input Summary")
             
-            summary_col1, summary_col2 = st.columns(2)
+            summary_col1, summary_col2, summary_col3 = st.columns(3)
             
             with summary_col1:
                 st.write("**Demographics**")
@@ -431,6 +537,12 @@ if model is not None:
                 st.write(f"- Time in Hospital: {time_in_hospital} days")
                 st.write(f"- Number of Medications: {num_medications}")
                 st.write(f"- Number of Diagnoses: {number_diagnoses}")
+            
+            with summary_col3:
+                st.write("**Laboratory Values**")
+                st.write(f"- Weight: {weight_num} lbs")
+                st.write(f"- Max Glucose: {max_glu_serum_num} mg/dL")
+                st.write(f"- A1C Result: {A1Cresult_num}%")
             
             st.write("**Clinical Diagnosis Chapters**")
             st.write(f"- Primary: {diag_1_chapter}")
