@@ -431,8 +431,15 @@ if model is not None:
     
     # Medication
     st.subheader("💊 Medication")
-    diabetesMed_options = ["", "No", "Yes"]
-    diabetesMed = st.selectbox("Diabetic Medication Prescribed", diabetesMed_options)
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        insulin_options = ["", "No", "Yes"]
+        insulin = st.selectbox("Insulin", insulin_options)
+    
+    with col2:
+        diabetesMed_options = ["", "No", "Yes"]
+        diabetesMed = st.selectbox("Other Diabetic Medication", diabetesMed_options)
     
     # Prediction Button
     st.markdown("---")
@@ -460,6 +467,7 @@ if model is not None:
         'diag_1': diag_1,
         'diag_2': diag_2,
         'diag_3': diag_3,
+        'insulin': insulin,
         'diabetesMed': diabetesMed,
         'weight_num': weight_num,
         'max_glu_serum_num': max_glu_serum_num,
@@ -472,7 +480,7 @@ if model is not None:
     
     if predict_button:
         # Validate that all required fields are filled
-        if not age_range or not gender or not race or not admission_type or not discharge_disposition or not diag_1_chapter or not diag_2_chapter or not diag_3_chapter or not diabetesMed:
+        if not age_range or not gender or not race or not admission_type or not discharge_disposition or not diag_1_chapter or not diag_2_chapter or not diag_3_chapter or not insulin or not diabetesMed:
             st.error("⚠️ Error: Please fill in all required fields before making a prediction")
             st.stop()
         
