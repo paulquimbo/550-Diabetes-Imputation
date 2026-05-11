@@ -502,35 +502,31 @@ if model is not None:
             st.error(f"⚠️ Missing required fields: {', '.join(missing_fields)}")
             st.stop()
 
-    if missing_fields:
-        st.error(f"⚠️ Missing required fields: {', '.join(missing_fields)}")
-        st.stop()
-        
         try:
             # Preprocess
             processed_df = preprocess_input(input_data)
             
-            # Get feature names that the model expects (in correct order)
+            # Get feature names
             feature_cols = get_model_features()
             
-            # Ensure all required features exist in processed_df
+            # Add missing columns
             for col in feature_cols:
                 if col not in processed_df.columns:
                     processed_df[col] = 0
             
-            # Reorder columns to match training order exactly
+            # Reorder
             X_input = processed_df[feature_cols].astype(float)
             
-            # Verify the data
+            # Check NaN
             if X_input.isnull().any().any():
                 st.error("⚠️ Error: NaN values found in features after preprocessing")
                 st.stop()
             
-            # Make prediction
+            # Prediction
             prediction_proba = model.predict_proba(X_input)[0]
             prediction = model.predict(X_input)[0]
             
-            # Display results
+            # Display
             st.markdown("---")
             st.header("📊 Prediction Results")
             
@@ -539,15 +535,13 @@ if model is not None:
             with col1:
                 st.metric(
                     "Prediction",
-                    "⚠️ HIGH READMISSION RISK" if prediction_proba[1] > 0.40 else "✅ LOW READMISSION RISK",
-                    delta=None
+                    "⚠️ HIGH READMISSION RISK" if prediction_proba[1] > 0.40 else "✅ LOW READMISSION RISK"
                 )
             
             with col2:
                 st.metric(
                     "Readmission Probability",
-                    f"{prediction_proba[1]:.1%}",
-                    delta=None
+                    f"{prediction_proba[1]:.1%}"
                 )
             
             # Input summary
