@@ -478,22 +478,25 @@ if model is not None:
     # MAIN CONTENT
     # ============================================================
     
-    if predict_button:
-        # Validate that all required fields are filled
-if (
-    age_range == "" or
-    gender == "" or
-    race == "" or
-    admission_type is None or
-    discharge_disposition is None or
-    diag_1_chapter == "" or
-    diag_2_chapter == "" or
-    diag_3_chapter == "" or
-    insulin == "" or
-    diabetesMed == ""
-):
-    st.error("⚠️ Error: Please fill in all required fields before making a prediction")
-    st.stop()
+
+
+if predict_button:
+    # ✅ FIXED VALIDATION (correctly indented)
+    if (
+        age_range == "" or
+        gender == "" or
+        race == "" or
+        admission_type is None or
+        discharge_disposition is None or
+        diag_1_chapter == "" or
+        diag_2_chapter == "" or
+        diag_3_chapter == "" or
+        insulin == "" or
+        diabetesMed == ""
+    ):
+        st.error("⚠️ Error: Please fill in all required fields before making a prediction")
+        st.stop()
+
 
         
         try:
