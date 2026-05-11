@@ -477,7 +477,6 @@ if model is not None:
     # ============================================================
     # MAIN CONTENT
     # ============================================================
-    
 
     if predict_button:
 
@@ -498,6 +497,10 @@ if model is not None:
             field for field, value in required_fields.items()
             if value in ("", None)
         ]
+
+        if missing_fields:
+            st.error(f"⚠️ Missing required fields: {', '.join(missing_fields)}")
+            st.stop()
 
     if missing_fields:
         st.error(f"⚠️ Missing required fields: {', '.join(missing_fields)}")
