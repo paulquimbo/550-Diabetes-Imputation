@@ -481,23 +481,23 @@ if model is not None:
 
     if predict_button:
 
-    required_fields = {
-        "Age Range": age_range,
-        "Gender": gender,
-        "Race": race,
-        "Admission Type": admission_type,
-        "Discharge Disposition": discharge_disposition,
-        "Primary Diagnosis": diag_1_chapter,
-        "Secondary Diagnosis": diag_2_chapter,
-        "Tertiary Diagnosis": diag_3_chapter,
-        "Insulin": insulin,
-        "Diabetes Medication": diabetesMed
-    }
+        required_fields = {
+            "Age Range": age_range,
+            "Gender": gender,
+            "Race": race,
+            "Admission Type": admission_type,
+            "Discharge Disposition": discharge_disposition,
+            "Primary Diagnosis": diag_1_chapter,
+            "Secondary Diagnosis": diag_2_chapter,
+            "Tertiary Diagnosis": diag_3_chapter,
+            "Insulin": insulin,
+            "Diabetes Medication": diabetesMed
+        }
 
-    missing_fields = [
-        field for field, value in required_fields.items()
-        if value in ("", None)
-    ]
+        missing_fields = [
+            field for field, value in required_fields.items()
+            if value in ("", None)
+        ]
 
     if missing_fields:
         st.error(f"⚠️ Missing required fields: {', '.join(missing_fields)}")
