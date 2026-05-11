@@ -480,9 +480,21 @@ if model is not None:
     
     if predict_button:
         # Validate that all required fields are filled
-        if not age_range or not gender or not race or not admission_type or not discharge_disposition or not diag_1_chapter or not diag_2_chapter or not diag_3_chapter or not insulin or not diabetesMed:
-            st.error("⚠️ Error: Please fill in all required fields before making a prediction")
-            st.stop()
+if (
+    age_range == "" or
+    gender == "" or
+    race == "" or
+    admission_type is None or
+    discharge_disposition is None or
+    diag_1_chapter == "" or
+    diag_2_chapter == "" or
+    diag_3_chapter == "" or
+    insulin == "" or
+    diabetesMed == ""
+):
+    st.error("⚠️ Error: Please fill in all required fields before making a prediction")
+    st.stop()
+
         
         try:
             # Preprocess
