@@ -479,7 +479,7 @@ if model is not None:
     # ============================================================
     
 
-if predict_button:
+    if predict_button:
 
     required_fields = {
         "Age Range": age_range,
@@ -502,8 +502,6 @@ if predict_button:
     if missing_fields:
         st.error(f"⚠️ Missing required fields: {', '.join(missing_fields)}")
         st.stop()
-
-
         
         try:
             # Preprocess
